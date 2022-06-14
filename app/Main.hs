@@ -9,7 +9,7 @@ import Data.Text (Text(..))
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Time.Clock (UTCTime, getCurrentTime)
-import Data.Time.LocalTime (zonedTimeToUTC)
+import Data.Time.LocalTime (zonedTimeToUTC, getCurrentTimeZone, utcToLocalTime)
 import Data.Time.Format.ISO8601 (iso8601ParseM, iso8601Show)
 import Data.Vector (Vector(..))
 import qualified Data.Vector as V
@@ -242,8 +242,9 @@ showPeriod :: Period
            -> IO ()
 showPeriod x = do
   putStrLn $ "Period #" <> show (periodId x)
-  putStrLn $ "Start: " <> iso8601Show (startTime x)
-  putStrLn $ "End: " <> iso8601Show (endTime x)
+  tz <- getCurrentTimeZone
+  putStrLn $ "Start: " <> iso8601Show (utcToLocalTime tz (startTime x))
+  putStrLn $ "End: " <> iso8601Show (utcToLocalTime tz (endTime x))
   putStr $ "Temperature: " <> show (temperature x)
   TIO.putStrLn $ " " <> temperatureUnit x
   TIO.putStrLn $ "Wind: " <> windSpeed x <> " " <> windDirection x
