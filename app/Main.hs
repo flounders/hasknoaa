@@ -277,8 +277,10 @@ act (AppOptions _ ListPoints) conn = do
   mapM_ (\(i, lat, long, city, state) -> printf "%d | %g | %g | %s | %s\n" i lat long city state) rs
 act (AppOptions _ (SetDefaultPoint i)) conn = do
   DB.execute_ conn "DELETE FROM defaultPoint"
-  -- If the pointId below does not exist, this will hard crash
-  DB.execute conn "INSERT INTO defaultPoint (pointId) VALUES (?)" (DB.Only i)
+  rs <- DB.query conn "SELECT id FROM points WHERE id = (?)" (DB.Only i) :: IO [DB.Only Int]
+  if null rs
+     then putStrLn "Error: Given point id does not exist."
+     else DB.execute conn "INSERT INTO defaultPoint (pointId) VALUES (?)" (DB.Only i)
 act (AppOptions u MultiDayForecast) conn = do
   is <- DB.query_ conn "SELECT pointId FROM defaultPoint"
   let i = (\(DB.Only x) -> x) $ head is :: Int
