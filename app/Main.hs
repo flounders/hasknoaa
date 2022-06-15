@@ -211,9 +211,15 @@ getForecastFromApi uri u = do
 getForecastFromCache ::
   DB.Connection ->
   Text ->
+  Units ->
   IO (Maybe Forecast)
-getForecastFromCache conn uri = do
-  r <- DB.query conn "SELECT last_body FROM forecasts WHERE url = ?" (DB.Only uri) :: IO [DB.Only String]
+getForecastFromCache conn uri u = do
+  r <-
+    DB.query
+      conn
+      "SELECT last_body FROM forecasts WHERE url = (?) AND units = (?)"
+      (uri, show u) ::
+      IO [DB.Only String]
   pure $ foldr (\(DB.Only x) acc -> decodeForecast x) Nothing r
 
 getForecast ::
@@ -222,7 +228,7 @@ getForecast ::
   Units ->
   IO (Maybe Forecast)
 getForecast conn uri u = do
-  fc <- getForecastFromCache conn uri
+  fc <- getForecastFromCache conn uri u
   case fc of
     Just x -> do
       p1 <- V.indexM (periods x) 0
@@ -232,7 +238,10 @@ getForecast conn uri u = do
           (fc', b) <- getForecastFromApi uri u
           case fc' of
             Just _ -> do
-              DB.execute conn "UPDATE forecasts SET last_body = (?) WHERE url = (?)" (b, uri)
+              DB.execute
+                conn
+                "UPDATE forecasts SET last_body = (?) WHERE url = (?) AND units = (?)"
+                (b, uri, show u)
               pure fc'
             Nothing -> pure Nothing
         else pure fc
@@ -240,7 +249,7 @@ getForecast conn uri u = do
       (fc', b) <- getForecastFromApi uri u
       case fc' of
         Just _ -> do
-          DB.execute conn "INSERT INTO forecasts (url, last_body) VALUES (?, ?)" (uri, b)
+          DB.execute conn "INSERT INTO forecasts (url, units, last_body) VALUES (?, ?, ?)" (uri, show u, b)
           pure fc'
         Nothing -> pure Nothing
 
@@ -261,7 +270,8 @@ initDB = do
   conn <- DB.open $ p <> "/database.sqlite"
   DB.execute_
     conn
-    "CREATE TABLE IF NOT EXISTS forecasts (id INTEGER PRIMARY KEY, url TEXT UNIQUE, last_body TEXT)"
+    "CREATE TABLE IF NOT EXISTS forecasts (id INTEGER PRIMARY KEY, url TEXT NOT NULL,\
+    \ units TEXT NOT NULL, last_body TEXT)"
   DB.execute_
     conn
     "CREATE TABLE IF NOT EXISTS points (id INTEGER PRIMARY KEY, lat REAL, long REAL, city TEXT,\
