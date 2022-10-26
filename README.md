@@ -1,7 +1,6 @@
-# hasknoaa 
+# hasknoaa
 
-Hasknoaa gets weather data from [NOAA's weather API for
-you](https://api.weather.gov).
+Hasknoaa gets weather data from [NOAA's weather API for you](https://api.weather.gov).
 
 ## Usage
 
